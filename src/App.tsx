@@ -185,9 +185,9 @@ const Puzzles = (props: { on_selected_puzzle: (_?: Puzzle) => void }) => {
 
       let [y,n] = f.split('_!_')
       
-      f = y + `id_${puzzle.id} `
+      f = y.trim() + ` id_${puzzle.id} `
       if (n !== undefined) {
-        f += '_!_' + n
+        f += '_!_' + n.trim()
       }
     }
     set_filter(f)
