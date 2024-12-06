@@ -9,6 +9,18 @@ import { stepwiseScroll } from './common/scroll'
 import { INITIAL_FEN } from 'chessops/fen'
 import { Node as HNode, pnode, SanScore } from 'hopefox'
 
+const str_hash = (str: string) => {
+  var hash = 0,
+    i, chr;
+  if (str.length === 0) return hash;
+  for (i = 0; i < str.length; i++) {
+    chr = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + chr;
+    hash |= 0; // Convert to 32bit integer
+  }
+  return hash;
+}
+
 function App() {
   return (<>
     <MyWorkerProvider>
@@ -48,7 +60,10 @@ function WithWorker() {
   const shalala = new Shala()
   
 
-  const on_wheel = stepwiseScroll((e: WheelEvent) => {
+  const on_wheel = stepwiseScroll((e: WheelEvent, scroll) => {
+    if (!scroll) {
+      return
+    }
     const target = e.target as HTMLElement;
     if (
       target.tagName !== 'PIECE' &&
@@ -67,7 +82,6 @@ function WithWorker() {
         set_i_selected_sans(Math.min(puzzle.move_fens.length - 2, i_selected_sans() + 1))
       }
     } else {
-
       set_i_selected_sans(Math.max(-1, i_selected_sans() - 1))
     }
 
@@ -346,14 +360,24 @@ function parse_rules(str: string, n_solution: HNode) {
 
 function Editor(props: { fen?: string }) {
 
+  let pcache: Record<string, Node[]> = {}
   const { set_rules: c_set_rules } = useContext(MyWorkerContext)!
 
   const [rules, set_rules] = makePersistedNamespaced<string>('', 'rules')
 
   c_set_rules(rules())
 
-  const n_solution = createMemo(() => props.fen ? pnode(props.fen, rules()) : undefined)
-  const children = createMemo(() => parse_rules(rules(), n_solution()!))
+  const children = createMemo(() => {
+    if (!props.fen) {
+      return []
+    }
+
+    let key = str_hash(props.fen + rules())
+    if (!pcache[key]) {
+      pcache[key] = parse_rules(rules(), pnode(props.fen, rules()))
+    }
+    return pcache[key]
+  })
 
   const [in_edit, set_in_edit] = createSignal<Node | undefined>(undefined)
 
