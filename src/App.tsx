@@ -315,7 +315,7 @@ class Node {
 
 }
 
-function parse_rules(str: string, n_solution: HNode[]) {
+function parse_rules(str: string, n_solution: HNode) {
 
     let ss = str.trim().split('\n')
 
@@ -329,7 +329,7 @@ function parse_rules(str: string, n_solution: HNode[]) {
         const depth = line.search(/\S/)
 
         const node = new Node(depth, i, rule)
-        node.best_match = HNode.best_match(i, n_solution)
+        node.best_match = n_solution.best_match(i)
 
         while (stack.length > depth + 1) {
             stack.pop()
@@ -436,6 +436,9 @@ const NestNode = (props: { node: Node, in_edit: Node | undefined, on_go_to_line:
           <span class='text'>{props.node.rule}</span>
           <Show when={props.node.best_match}>{ match =>
             <>
+            <Show when={props.node.children.length > 0}>
+              <span class='minmax'>{props.node.depth %2 === 0 ? 'max': 'min' }</span>
+              </Show>
               <span class='score'>{match().score}</span>
               <span class='san'>{match().san}</span>
             </>

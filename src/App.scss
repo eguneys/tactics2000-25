@@ -94,7 +94,7 @@
             display: flex;
             gap: 0.5em;
 
-            .score {
+            .score, .minmax {
                 color: hsl(0, 71%, 47%);
             }
             .san {
