@@ -31,8 +31,8 @@ export const MyWorkerProvider = (props: { children: JSX.Element }) => {
     let filter: string | undefined = undefined
     worker.onmessage = (e) => {
         if (e.data === 'ready') {
-            worker.postMessage({ t: 'rules', d: rules })
             worker.postMessage({ t: 'filter', d: filter })
+            worker.postMessage({ t: 'rules', d: rules })
             return
         }
         switch (e.data.t) {

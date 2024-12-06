@@ -33,7 +33,7 @@ export const puzzle_has_tags = (puzzle: Puzzle): Record<string, true> => {
 export const puzzle_all_tags = (puzzle: Puzzle): Record<string, boolean> => {
   let res = { ...puzzle.tags, ...puzzle_has_tags(puzzle) }
 
-  if (puzzle.solve.i === undefined) {
+  if (puzzle.solve.i === 99) {
     res.solved = true
   }
 

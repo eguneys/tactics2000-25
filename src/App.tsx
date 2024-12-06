@@ -145,10 +145,14 @@ class PuzzleMemo {
     return puzzle_all_tags(this.puzzle)
   }
 
+  get solve() {
+    return this.puzzle.solve
+  }
+
   private constructor(readonly puzzle: Puzzle) {}
 }
 
-const Puzzles = (props: { on_selected_puzzle: (_: Puzzle) => void }) => {
+const Puzzles = (props: { on_selected_puzzle: (_?: Puzzle) => void }) => {
 
   let { puzzles, filter_puzzles } = useContext(MyWorkerContext)!
 
@@ -161,6 +165,50 @@ const Puzzles = (props: { on_selected_puzzle: (_: Puzzle) => void }) => {
   const selected_puzzle = createMemo(() => filtered().find(_ => _.id === id_selected()))
   //const selected_fen = createMemo(() => selected_puzzle()?.fen)
 
+  const nb_solved = createMemo(() => filtered().filter(_ => _.solve.i === 99).length)
+
+  const toggle_id = () => {
+    let f = filter()
+
+    if (!f) {
+      return
+    }
+
+    if (f.includes('id_')) {
+      f = f.replace(/id_\w*/, '')
+    } else {
+
+      let puzzle = selected_puzzle()
+      if (!puzzle) {
+        return
+      }
+
+      let [y,n] = f.split('_!_')
+      
+      f = y + `id_${puzzle.id} `
+      if (n !== undefined) {
+        f += '_!_' + n
+      }
+    }
+    set_filter(f)
+  }
+
+  const toggle_solved = () => {
+    let f = filter()
+
+    if (!f) {
+      return
+    }
+
+    if (f.includes('solved')) {
+      f = f.replace('solved', '')
+    } else {
+      f = f.trim() + ' solved'
+    }
+
+    set_filter(f)
+  }
+
   createEffect(on(selected_puzzle, (puzzle) => {
     if (puzzle) {
       props.on_selected_puzzle(puzzle.puzzle)
@@ -168,6 +216,7 @@ const Puzzles = (props: { on_selected_puzzle: (_: Puzzle) => void }) => {
       if (filtered()[0]) {
         set_id_selected(filtered()[0]?.id)
       }
+      props.on_selected_puzzle(undefined)
     }
   }))
 
@@ -199,7 +248,11 @@ const Puzzles = (props: { on_selected_puzzle: (_: Puzzle) => void }) => {
         }</For>
       }</Show>
       </div>
-
+      <div class='info'>
+        <span class='solved'>Solved {`${nb_solved()}/${filtered().length}`}</span>
+        <button onClick={toggle_solved}>Toggle Solved</button>
+        <button onClick={toggle_id}>Toggle Id</button>
+      </div>
       </div>
   )
 }
@@ -308,7 +361,7 @@ function Editor() {
   const on_set_rules = (e: KeyboardEvent) => {
     set_rules($el_rules.value)
 
-    if (e.key === 'Enter') {
+    if (e.key === 'Escape') {
       c_set_rules($el_rules.value)
     }
   }
@@ -318,6 +371,7 @@ function Editor() {
     <textarea ref={_ => $el_rules = _} class='editor-input' onKeyDown={on_set_rules} title='rules' rows={20} cols={40}/>
   </div>
   <div class='editor'>
+    <div class='scroll-wrap'>
     <Show when={children().length > 0}>
     <div class='nest'>
     <For each={children()}>{ node =>
@@ -325,6 +379,7 @@ function Editor() {
      }</For>
     </div>
     </Show>
+    </div>
   </div>
   </>)
 }

@@ -100,9 +100,14 @@ const send_puzzles = () => {
   let all = puzzles
   let filtered = filter ? puzzles.filter(yn_filter(filter)) : puzzles
 
-  filtered = filtered.slice(0, 100)
+  filtered = filtered.slice(0, 20)
 
-  filtered.forEach(_ => _.solve = { i: solve_p(_) })
+  filtered.forEach((_, i) => {
+    if (i % 100 === 0) {
+      send_progress(i, filtered.length)
+    }
+    _.solve = { i: solve_p(_) }
+  })
 
   filtered = filter ? puzzles.filter(yn_filter(filter)) : filtered
 
@@ -116,11 +121,12 @@ function solve_p(p: Puzzle) {
         let san = p.sans[i]
 
         if (bestsan(fen, rules) !== san) {
+          console.log(p.id, san, bestsan(fen, rules))
             return i
         } else {
         }
     }
-    return undefined
+    return 99
 }
 
 onmessage = (e) => {

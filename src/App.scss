@@ -79,9 +79,17 @@
         }
 
       .editor {
+
+        flex: 1;
+        .scroll-wrap {
+            position: relative;
+            overflow-y: scroll;
+            width: 100%;
+        }
+
+
         font-family: Inter;
         display: flex;
-        justify-content: center;
         .rule {
             display: block;
         }
