@@ -1,0 +1,78 @@
+.app-wrap {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-flow: row;
+
+    .editor-wrap {
+        flex: 1;
+    }
+
+    .editor-wrap {
+        -webkit-user-select: none;
+        user-select: none;
+        font-size: 2em;
+        color: hsl(0, 0%, 86%);
+        background: hsl(350, 9%, 13%);
+    }
+
+
+    .editor-wrap {
+        display: flex;
+        padding: 1em;
+        gap: 1em;
+
+        .editor-input {
+            resize: none;
+        }
+
+      .editor {
+        font-family: Inter;
+        display: flex;
+        justify-content: center;
+        .rule {
+            display: block;
+        }
+
+        .new {
+            opacity: 0.2;
+            cursor: pointer;
+
+            &:hover {
+                opacity: 0.8;
+            }
+        }
+
+        .rule, .new {
+            &::before {
+                position: absolute;
+                width: 10px;
+                height: 8px;
+                margin-top: .65em;
+                margin-left: -20px;
+                border-top: 4px solid #4a4a4a;
+                content: '';
+            }
+        }
+
+        .nest {
+            display: flex;
+            flex-flow: column;
+            gap: 0.1em;
+            padding-left: 20px;
+            padding-top: 2px;
+            border-left: 4px solid #4a4a4a;
+
+            &::before {
+                position: absolute;
+                width: 12px;
+                height: 8px;
+                margin-top: -2px;
+                margin-left: -32px;
+                border-top: 4px solid #4a4a4a;
+                content: '';
+            }
+        }
+      }
+    }
+}
