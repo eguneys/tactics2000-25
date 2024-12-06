@@ -6,6 +6,7 @@ import { Puzzle, puzzle_all_tags, puzzle_has_tags } from './puzzles'
 import { MyWorkerContext, MyWorkerProvider } from './Worker'
 import { Shala } from './Shalala'
 import { stepwiseScroll } from './common/scroll'
+import { INITIAL_FEN } from 'chessops/fen'
 
 function App() {
   return (<>
@@ -34,6 +35,8 @@ function WithWorker() {
     let i = i_selected_sans()
     if (puzzle) {
       shalala.on_set_fen_uci(puzzle.move_fens[i + 1])
+    } else {
+      shalala.on_set_fen_uci(INITIAL_FEN)
     }
   })
 
