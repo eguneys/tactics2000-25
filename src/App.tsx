@@ -408,7 +408,7 @@ function Editor(props: { fen?: string }) {
 
   return (<>
   <div class='text-wrap'>
-    <textarea ref={_ => $el_rules = _} class='editor-input' onKeyDown={on_set_rules} title='rules' rows={20} cols={40}/>
+    <textarea ref={_ => $el_rules = _} class='editor-input' onKeyDown={on_set_rules} title='rules' rows={20} cols={28}/>
     <div class='info'>
       <Show when={best_score_depth0()}>{bb => 
           <>
