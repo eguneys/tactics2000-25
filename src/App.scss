@@ -63,7 +63,7 @@
     .editor-wrap {
         -webkit-user-select: none;
         user-select: none;
-        font-size: 2em;
+        font-size: 1.2em;
         color: hsl(0, 0%, 86%);
         background: hsl(350, 9%, 13%);
     }
@@ -91,7 +91,19 @@
         font-family: Inter;
         display: flex;
         .rule {
-            display: block;
+            display: flex;
+            gap: 0.5em;
+
+            .score {
+                color: hsl(0, 71%, 47%);
+            }
+            .san {
+                color:hsl(350, 62%, 52%);
+            }
+            .score, .san {
+                font-size: 0.9em;
+                font-style: italic;
+            }
         }
 
         .new {
@@ -132,6 +144,18 @@
                 border-top: 4px solid #4a4a4a;
                 content: '';
             }
+        }
+      }
+
+      .text-wrap {
+        display: flex;
+        flex-flow: column;
+        .info {
+            font-family: Inter;
+            padding: 0.5em;
+
+            display: flex;
+            gap: 0.5em;
         }
       }
     }

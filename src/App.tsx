@@ -7,6 +7,7 @@ import { MyWorkerContext, MyWorkerProvider } from './Worker'
 import { Shala } from './Shalala'
 import { stepwiseScroll } from './common/scroll'
 import { INITIAL_FEN } from 'chessops/fen'
+import { Node as HNode, pnode, SanScore } from 'hopefox'
 
 function App() {
   return (<>
@@ -94,7 +95,7 @@ function WithWorker() {
           </div>
         </div>
         <div class='editor-wrap'>
-          <Editor />
+          <Editor fen={shalala.fen_uci[0]} />
         </div>
 
         <div class='puzzles-wrap'>
@@ -278,30 +279,29 @@ class Node {
     this._children[1](children)
   }
 
+  get best_match() {
+    return this._best_match[0]()
+  }
+  
+  set best_match(_: SanScore | undefined) {
+    this._best_match[1](_)
+  }
+
   _rule: Signal<string>
   _children: Signal<Node[]>
+  _best_match: Signal<SanScore | undefined>
   parent: Node | undefined
 
-  constructor(public depth: number, rule: string) {
+  constructor(public depth: number, public line: number, rule: string) {
     this._rule = createSignal(rule)
     this._children = createSignal<Node[]>([])
+    this._best_match = createSignal<SanScore | undefined>(undefined)
   }
 
   add_children(nodes: Node[]) {
     untrack(() => {
       nodes.forEach(_ => _.parent = this)
       this.children = [...this.children, ...nodes]
-    })
-  }
-
-  add_new_sibling_after() {
-    return untrack(() => {
-      let i = this.parent!.children.indexOf(this)
-      let child = new Node(0, 'new')
-      child.parent = this.parent
-      this.parent!.children.splice(i + 1, 0, child)
-      this.parent!.children = [...this.parent!.children]
-      return child
     })
   }
 
@@ -315,20 +315,21 @@ class Node {
 
 }
 
-function parse_rules(str: string) {
+function parse_rules(str: string, n_solution: HNode[]) {
 
     let ss = str.trim().split('\n')
 
-    let root = new Node(0, '')
+    let root = new Node(0, 0, '')
     const stack = [root]
 
-    ss.forEach(line => {
+    ss.forEach((line, i) => {
         const rule = line.trim()
         if (!rule) return
 
         const depth = line.search(/\S/)
 
-        const node = new Node(depth, rule)
+        const node = new Node(depth, i, rule)
+        node.best_match = HNode.best_match(i, n_solution)
 
         while (stack.length > depth + 1) {
             stack.pop()
@@ -343,7 +344,7 @@ function parse_rules(str: string) {
 }
 
 
-function Editor() {
+function Editor(props: { fen?: string }) {
 
   const { set_rules: c_set_rules } = useContext(MyWorkerContext)!
 
@@ -351,7 +352,8 @@ function Editor() {
 
   c_set_rules(rules())
 
-  const children = createMemo(() => parse_rules(rules()))
+  const n_solution = createMemo(() => props.fen ? pnode(props.fen, rules()) : undefined)
+  const children = createMemo(() => parse_rules(rules(), n_solution()!))
 
   const [in_edit, set_in_edit] = createSignal<Node | undefined>(undefined)
 
@@ -369,16 +371,36 @@ function Editor() {
     }
   }
 
+  const best_score_depth0 = createMemo(() => children().map(_ => _.depth === 0 ? _.best_match : undefined).filter(Boolean).sort((a, b) => b!.score - a!.score)[0])
+
+
+  const on_go_to_line = (line: number) => {
+    let i = $el_rules.value.split('\n').slice(0, line).map(_ => _.length + 1).reduce((a, b) => a + b, 0)
+      $el_rules.setSelectionRange(i, i)
+      $el_rules.blur()
+      $el_rules.focus()
+      $el_rules.setSelectionRange(i, i + 1)
+  }
+
   return (<>
   <div class='text-wrap'>
     <textarea ref={_ => $el_rules = _} class='editor-input' onKeyDown={on_set_rules} title='rules' rows={20} cols={40}/>
+    <div class='info'>
+      <Show when={best_score_depth0()}>{bb => 
+          <>
+            Best Score:
+            <span class='san'>{bb().san}</span>
+            <span class='score'>{bb().score}</span>
+          </>
+        }</Show>
+    </div>
   </div>
   <div class='editor'>
     <div class='scroll-wrap'>
     <Show when={children().length > 0}>
     <div class='nest'>
     <For each={children()}>{ node =>
-      <NestNode node={node} in_edit={in_edit()} on_edit={set_in_edit}/>
+      <NestNode node={node} in_edit={in_edit()} on_edit={set_in_edit} on_go_to_line={on_go_to_line}/>
      }</For>
     </div>
     </Show>
@@ -387,7 +409,7 @@ function Editor() {
   </>)
 }
 
-const NestNode = (props: { node: Node, in_edit: Node | undefined, on_edit: (_: Node | undefined) => void }) => {
+const NestNode = (props: { node: Node, in_edit: Node | undefined, on_go_to_line: (_: number) => void, on_edit: (_: Node | undefined) => void }) => {
 
   let $el_text: HTMLInputElement
   const on_key_down = (e: KeyboardEvent) => {
@@ -398,7 +420,7 @@ const NestNode = (props: { node: Node, in_edit: Node | undefined, on_edit: (_: N
         props.on_edit(undefined)
       } else {
         props.node.rule = $el_text.value
-        props.on_edit(props.node.add_new_sibling_after())
+        //props.on_edit(props.node.add_new_sibling_after())
       }
     }
     if (e.key === 'Escape') {
@@ -408,8 +430,17 @@ const NestNode = (props: { node: Node, in_edit: Node | undefined, on_edit: (_: N
   }
 
   return (<>
-    <span onClick={() => props.on_edit(props.node)} class='rule'>
-      <Show when={props.in_edit === props.node} fallback={props.node.rule}>
+    <span onClick={() => props.on_go_to_line(props.node.line)} class='rule'>
+      <Show when={props.in_edit === props.node} fallback={
+        <>
+          <span class='text'>{props.node.rule}</span>
+          <Show when={props.node.best_match}>{ match =>
+            <>
+              <span class='score'>{match().score}</span>
+              <span class='san'>{match().san}</span>
+            </>
+          }</Show>
+        </>}>
         <>
         <input ref={_ => $el_text = _} autofocus={true} type='text' title='rule' onKeyDown={on_key_down} value={props.node.rule}></input>
         </>
@@ -429,3 +460,154 @@ const NestNode = (props: { node: Node, in_edit: Node | undefined, on_edit: (_: N
 }
 
 export default App
+
+/*
+
+backup rules
+
+b +
+ k =x
+  b =x
+
+b =x
+
+b =x
+ b =x
+  q =x
+
+b
+ q
+  n =x
+   q =x
+    r =x
+ q =x
+  n =x
+  .
+  b =x
+  .
+ .
+
+n
+ q =x
+  q =x
+  .
+ .
+
+p =x
+ b =x
+  b
+   q
+    n =x
+     q =x
+      r =x
+
+p =x
+ q o
+ q
+  p =x
+
+
+q +
+ k =x
+ p =x
+ n
+  q =x
+
+q +
+ k =x
+ q =x
+ r =x
+ k
+  r
+   b =x
+    q =x
+
+r
+ q =x
+ b =x
+  #
+  q =x
+   q =x
+   k =x
+   b
+
+q =x
+ p =x
+  r =x
+   r =x
+    r =x
+
+q =x
+ q =x
+ p =x
+ n =x
+ r =x
+ .
+
+q =x
+ p =x
+  n =x
+
+n +
+ k
+  n =x
+   r =x
+    n =x
+
+
+n +
+ b =x
+  b =x
+ k
+  b =x
+  n =x
+
+n
+ q =x
+ p =x
+ r =x
+  n +
+   k
+    n =x
+
+n =x
+ q =x
+
+n =x
+
+r + =x
+ r =x
+ k =x
+ k
+  r =x
+   k =x
+   .
+
+r +
+ k =x
+ k
+  r +
+   k
+    r =x
+  r =x
+   k =x
+   .
+
+r
+ q =x
+  b =x
+ .
+ 
+
+r =x
+
+p
+ q =x
+  q =x
+ q o
+  p =x
+   p =x
+  p
+
+
+*/
