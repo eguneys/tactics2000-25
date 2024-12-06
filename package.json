@@ -9,7 +9,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@solid-primitives/storage": "^4.2.1",
     "chessground": "^9.1.1",
+    "chessops": "^0.14.2",
     "solid-js": "^1.9.3"
   },
   "devDependencies": {

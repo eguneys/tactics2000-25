@@ -1,11 +1,63 @@
+.header {
+    height: 2em;
+
+    background: hsl(351, 16%, 32%);
+}
+
 .app-wrap {
     width: 100vw;
     height: 100vh;
     display: flex;
     flex-flow: row;
 
+    .puzzles-wrap {
+        flex: 3;
+    }
+
+    .board-wrap {
+        flex: 3;
+        padding: 0.3em;
+        .board {
+            aspect-ratio: 1/1;
+        }
+
+        .tree {
+            display: flex;
+            flex-flow: row wrap;
+            .san {
+                font-family: Inter;
+                font-size: 1.2em;
+                padding: 0.3em;
+                flex: 40%;
+
+                user-select: none;
+                cursor: pointer;
+
+                background: hsl(350, 9%, 13%);
+                color: hsl(0, 0%, 86%);
+
+                &:hover, &.active {
+                    background: hsl(350, 38%, 20%);
+                }
+
+                &.fail {
+                    background: hsl(0, 71%, 47%);
+                }
+
+                &:hover.fail, &.fail.active {
+                    background: hsl(0, 82%, 64%);
+                }
+            }
+        }
+    }
+
+    .board-wrap,
+    .puzzles-wrap {
+        background: hsl(349, 45%, 28%);
+    }
+
     .editor-wrap {
-        flex: 1;
+        flex: 5;
     }
 
     .editor-wrap {
@@ -19,7 +71,7 @@
 
     .editor-wrap {
         display: flex;
-        padding: 1em;
+        padding: 0.3em;
         gap: 1em;
 
         .editor-input {
@@ -74,5 +126,87 @@
             }
         }
       }
+    }
+
+
+    .puzzles {
+
+        display: flex;
+        flex-flow: column;
+        gap: 0.2em;
+
+        .filter {
+            margin-top: 0.2em;
+            display: flex;
+            flex-flow: column;
+            align-items: center;
+
+            input {
+                margin: 0 3em;
+                align-self: stretch;
+            }
+        }
+
+        .list {
+            overflow: scroll;
+            max-height: 60vh;
+
+
+            .puzzle {
+                min-height: 80px;
+                padding: 0.4em;
+                user-select: none;
+                cursor: pointer;
+                border: 1px solid rgb(62, 0, 128);
+                background: lightgray;
+                display: flex;
+
+                &:hover {
+                    background: lightyellow;
+                }
+
+                &:active {
+                    background: lightcyan;
+                }
+
+                &.active {
+                    background: yellow;
+                }
+
+                .id {
+                    flex: 1;
+                    color:rgb(62, 0, 128);
+                }
+
+                .has-tags,
+                .tags {
+                    align-self: flex-start;
+                    font-size: 0.8em;
+                }
+
+
+                .has-tags,
+                .tags {
+                    flex: 3;
+                    display: flex;
+                    gap: 0 0.4em;
+                    flex-flow: row wrap;
+                    justify-content: center;
+                }
+            }
+        }
+    }
+
+
+    .progress {
+        position: fixed;
+        border: 2px solid lime;
+        background: lightyellow;
+        bottom: 0;
+        right: 0;
+        margin: 1em;
+        padding: 1em;
+        font-size: 1.2em;
+        font-weight: bold;
     }
 }
