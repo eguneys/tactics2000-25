@@ -1,4 +1,4 @@
-import { createEffect, createMemo, createSignal, For, mapArray, on, onMount, Show, Signal, untrack, useContext } from 'solid-js'
+import { createEffect, createMemo, createSignal, For, mapArray, on, onMount, Show, useContext } from 'solid-js'
 import './App.scss'
 import Chessboard from './Chessboard'
 import { makePersistedNamespaced } from './persisted'
@@ -7,7 +7,7 @@ import { MyWorkerContext, MyWorkerProvider } from './Worker'
 import { Shala } from './Shalala'
 import { stepwiseScroll } from './common/scroll'
 import { INITIAL_FEN } from 'chessops/fen'
-import { Node as HNode, pnode, SanScore } from 'hopefox'
+import { AlphaBetaRuleNode, AlphaBetaNode } from 'hopefox'
 
 const str_hash = (str: string) => {
   var hash = 0,
@@ -275,92 +275,9 @@ const Puzzles = (props: { on_selected_puzzle: (_?: Puzzle) => void }) => {
   )
 }
 
-class Node {
-
-  get rule() {
-    return this._rule[0]()
-  }
-
-  set rule(rule: string) {
-    this._rule[1](rule)
-  }
-
-  get children() {
-    return this._children[0]()
-  }
-
-  set children(children: Node[]) {
-    this._children[1](children)
-  }
-
-  get best_match() {
-    return this._best_match[0]()
-  }
-  
-  set best_match(_: SanScore | undefined) {
-    this._best_match[1](_)
-  }
-
-  _rule: Signal<string>
-  _children: Signal<Node[]>
-  _best_match: Signal<SanScore | undefined>
-  parent: Node | undefined
-
-  constructor(public depth: number, public line: number, rule: string) {
-    this._rule = createSignal(rule)
-    this._children = createSignal<Node[]>([])
-    this._best_match = createSignal<SanScore | undefined>(undefined)
-  }
-
-  add_children(nodes: Node[]) {
-    untrack(() => {
-      nodes.forEach(_ => _.parent = this)
-      this.children = [...this.children, ...nodes]
-    })
-  }
-
-  remove() {
-    untrack(() => {
-      let i = this.parent!.children.indexOf(this)
-      this.parent!.children.splice(i, 1)
-      this.parent!.children = [...this.parent!.children]
-    })
-  }
-
-}
-
-function parse_rules(str: string, n_solution: HNode) {
-
-    let ss = str.trim().split('\n')
-
-    let root = new Node(0, 0, '')
-    const stack = [root]
-
-    ss.forEach((line, i) => {
-        const rule = line.trim()
-        if (!rule) return
-
-        const depth = line.search(/\S/)
-
-        const node = new Node(depth, i, rule)
-        node.best_match = n_solution.best_match(i)
-
-        while (stack.length > depth + 1) {
-            stack.pop()
-        }
-
-        stack[stack.length - 1].add_children([node])
-        stack.push(node)
-    })
-    root.children.forEach(_ => _.parent = undefined)
-
-    return root.children
-}
-
-
 function Editor(props: { fen?: string }) {
 
-  let pcache: Record<string, Node[]> = {}
+  let pcache: Record<string, AlphaBetaRuleNode> = {}
   const { set_rules: c_set_rules } = useContext(MyWorkerContext)!
 
   const [rules, set_rules] = makePersistedNamespaced<string>('', 'rules')
@@ -369,12 +286,12 @@ function Editor(props: { fen?: string }) {
 
   const children = createMemo(() => {
     if (!props.fen) {
-      return []
+      return undefined
     }
 
     let key = str_hash(props.fen + rules())
     if (!pcache[key]) {
-      pcache[key] = parse_rules(rules(), pnode(props.fen, rules()))
+      pcache[key] = AlphaBetaNode.search(props.fen, rules())
     }
     return pcache[key]
   })
@@ -395,7 +312,9 @@ function Editor(props: { fen?: string }) {
     }
   }
 
-  const best_score_depth0 = createMemo(() => children().map(_ => _.depth === 0 ? _.best_match : undefined).filter(Boolean).sort((a, b) => b!.score - a!.score)[0])
+
+
+  const best_score_depth0 = () => {}//createMemo(() => children().map(_ => _.depth === 0 ? _.best_match : undefined).filter(Boolean).sort((a, b) => b!.score - a!.score)[0])
 
 
   const on_go_to_line = (line: number) => {
@@ -413,228 +332,52 @@ function Editor(props: { fen?: string }) {
       <Show when={best_score_depth0()}>{bb => 
           <>
             Best Score:
+            {/*
             <span class='san'>{bb().san}</span>
             <span class='score'>{bb().score}</span>
+            */}
           </>
         }</Show>
     </div>
   </div>
   <div class='editor'>
     <div class='scroll-wrap'>
-    <Show when={children().length > 0}>
-    <div class='nest'>
-    <For each={children()}>{ node =>
-      <NestNode node={node} in_edit={in_edit()} on_edit={set_in_edit} on_go_to_line={on_go_to_line}/>
-     }</For>
-    </div>
-    </Show>
+        <Show when={children()}>{children =>
+          <div class='nest'>
+            <For each={children().children}>{node =>
+              <NestNode node={node} in_edit={in_edit()} on_edit={set_in_edit} on_go_to_line={on_go_to_line} />
+            }</For>
+          </div>
+        }</Show>
     </div>
   </div>
   </>)
 }
 
-const NestNode = (props: { node: Node, in_edit: Node | undefined, on_go_to_line: (_: number) => void, on_edit: (_: Node | undefined) => void }) => {
-
-  let $el_text: HTMLInputElement
-  const on_key_down = (e: KeyboardEvent) => {
-
-    if (e.key === 'Enter') {
-      if ($el_text.value === '') {
-        props.node.remove()
-        props.on_edit(undefined)
-      } else {
-        props.node.rule = $el_text.value
-        //props.on_edit(props.node.add_new_sibling_after())
-      }
-    }
-    if (e.key === 'Escape') {
-      props.node.rule = $el_text.value
-      props.on_edit(undefined)
-    }
-  }
+const NestNode = (props: { node: AlphaBetaRuleNode, in_edit: Node | undefined, on_go_to_line: (_: number) => void, on_edit: (_: Node | undefined) => void }) => {
 
   return (<>
     <span onClick={() => props.on_go_to_line(props.node.line)} class='rule'>
-      <Show when={props.in_edit === props.node} fallback={
-        <>
-          <span class='text'>{props.node.rule}</span>
-          <Show when={props.node.best_match}>{ match =>
-            <>
+        <span class='text'>{props.node.rule}</span>
+        <Show when={props.node.best_san_score}>{match =>
+          <>
             <Show when={props.node.children.length > 0}>
-              <span class='minmax'>{props.node.depth %2 === 0 ? 'max': 'min' }</span>
-              </Show>
-              <span class='score'>{match().score}</span>
-              <span class='san'>{match().san}</span>
-            </>
-          }</Show>
-        </>}>
-        <>
-        <input ref={_ => $el_text = _} autofocus={true} type='text' title='rule' onKeyDown={on_key_down} value={props.node.rule}></input>
-        </>
-      </Show></span>
-    <Show when={props.node.children.length > 0}>
-    <div class='nest'>
-    <For each={props.node.children}>{ node =>
-      <NestNode {...props} node={node}/>
-     }</For>
-    </div>
-    {/*
-    <span class='new' onClick={() => props.on_edit(props.node.add_new_sibling_after())}>+</span>
-    */
-      }
-    </Show>
-    </>)
+              <span class='minmax'>{props.node.depth % 2 === 0 ? 'max' : 'min'}</span>
+            </Show>
+            <span class='score'>{match().score}</span>
+            <span class='san'>{match().san}</span>
+          </>
+        }</Show>
+    </span>
+      <Show when={props.node.children.length > 0}>
+        <div class='nest'>
+          <For each={props.node.children}>{node =>
+            <NestNode {...props} node={node} />
+          }</For>
+        </div>
+      </Show>
+  </>)
 }
 
+
 export default App
-
-/*
-
-backup rules
-
-b +
- k =x
-  b =x
-
-b =x
-
-b =x
- b =x
-  q =x
-
-b
- q
-  n =x
-   q =x
-    r =x
- q =x
-  n =x
-  .
-  b =x
-  .
- .
-
-n
- q =x
-  q =x
-  .
- .
-
-p =x
- b =x
-  b
-   q
-    n =x
-     q =x
-      r =x
-
-p =x
- q o
- q
-  p =x
-
-
-q +
- k =x
- p =x
- n
-  q =x
-
-q +
- k =x
- q =x
- r =x
- k
-  r
-   b =x
-    q =x
-
-r
- q =x
- b =x
-  #
-  q =x
-   q =x
-   k =x
-   b
-
-q =x
- p =x
-  r =x
-   r =x
-    r =x
-
-q =x
- q =x
- p =x
- n =x
- r =x
- .
-
-q =x
- p =x
-  n =x
-
-n +
- k
-  n =x
-   r =x
-    n =x
-
-
-n +
- b =x
-  b =x
- k
-  b =x
-  n =x
-
-n
- q =x
- p =x
- r =x
-  n +
-   k
-    n =x
-
-n =x
- q =x
-
-n =x
-
-r + =x
- r =x
- k =x
- k
-  r =x
-   k =x
-   .
-
-r +
- k =x
- k
-  r +
-   k
-    r =x
-  r =x
-   k =x
-   .
-
-r
- q =x
-  b =x
- .
- 
-
-r =x
-
-p
- q =x
-  q =x
- q o
-  p =x
-   p =x
-  p
-
-
-*/
