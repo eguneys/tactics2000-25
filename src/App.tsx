@@ -314,8 +314,7 @@ function Editor(props: { fen?: string }) {
 
 
 
-  const best_score_depth0 = () => {}//createMemo(() => children().map(_ => _.depth === 0 ? _.best_match : undefined).filter(Boolean).sort((a, b) => b!.score - a!.score)[0])
-
+  const best_score_depth0 = createMemo(() => children()?.best_child?.best_san_score)
 
   const on_go_to_line = (line: number) => {
     let i = $el_rules.value.split('\n').slice(0, line).map(_ => _.length + 1).reduce((a, b) => a + b, 0)
@@ -332,10 +331,8 @@ function Editor(props: { fen?: string }) {
       <Show when={best_score_depth0()}>{bb => 
           <>
             Best Score:
-            {/*
             <span class='san'>{bb().san}</span>
             <span class='score'>{bb().score}</span>
-            */}
           </>
         }</Show>
     </div>
@@ -361,9 +358,6 @@ const NestNode = (props: { node: AlphaBetaRuleNode, in_edit: Node | undefined, o
         <span class='text'>{props.node.rule}</span>
         <Show when={props.node.best_san_score}>{match =>
           <>
-            <Show when={props.node.children.length > 0}>
-              <span class='minmax'>{props.node.depth % 2 === 0 ? 'max' : 'min'}</span>
-            </Show>
             <span class='score'>{match().score}</span>
             <span class='san'>{match().san}</span>
           </>
