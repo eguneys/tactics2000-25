@@ -82,7 +82,7 @@
 
       .editor {
 
-        flex: 1;
+        flex: 2;
         .scroll-wrap {
             position: relative;
             overflow-y: scroll;
@@ -151,6 +151,7 @@
       }
 
       .text-wrap {
+        flex: 1;
         display: flex;
         flex-flow: column;
         .info {

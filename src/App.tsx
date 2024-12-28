@@ -7,7 +7,7 @@ import { MyWorkerContext, MyWorkerProvider } from './Worker'
 import { Shala } from './Shalala'
 import { stepwiseScroll } from './common/scroll'
 import { INITIAL_FEN } from 'chessops/fen'
-import { AlphaBetaRuleNode, AlphaBetaNode } from 'hopefox'
+import { rule_search_tree, RuleNode } from 'hopefox'
 
 const str_hash = (str: string) => {
   var hash = 0,
@@ -277,7 +277,7 @@ const Puzzles = (props: { on_selected_puzzle: (_?: Puzzle) => void }) => {
 
 function Editor(props: { fen?: string }) {
 
-  let pcache: Record<string, AlphaBetaRuleNode> = {}
+  let pcache: Record<string, RuleNode> = {}
   const { set_rules: c_set_rules } = useContext(MyWorkerContext)!
 
   const [rules, set_rules] = makePersistedNamespaced<string>('', 'rules')
@@ -291,7 +291,8 @@ function Editor(props: { fen?: string }) {
 
     let key = str_hash(props.fen + rules())
     if (!pcache[key]) {
-      pcache[key] = AlphaBetaNode.search(props.fen, rules())
+      pcache[key] = rule_search_tree(props.fen, rules())
+      //pcache[key].children.sort((a, b) => b.nb_visits - a.nb_visits)
     }
     return pcache[key]
   })
@@ -305,16 +306,14 @@ function Editor(props: { fen?: string }) {
   })
 
   const on_set_rules = (e: KeyboardEvent) => {
-    set_rules($el_rules.value)
 
     if (e.key === 'Escape') {
+      set_rules($el_rules.value)
       c_set_rules($el_rules.value)
     }
   }
 
 
-
-  const best_score_depth0 = createMemo(() => children()?.best_child?.best_san_score)
 
   const on_go_to_line = (line: number) => {
     let i = $el_rules.value.split('\n').slice(0, line).map(_ => _.length + 1).reduce((a, b) => a + b, 0)
@@ -326,15 +325,8 @@ function Editor(props: { fen?: string }) {
 
   return (<>
   <div class='text-wrap'>
-    <textarea ref={_ => $el_rules = _} class='editor-input' onKeyDown={on_set_rules} title='rules' rows={20} cols={28}/>
+    <textarea ref={_ => $el_rules = _} class='editor-input' onKeyDown={on_set_rules} title='rules' rows={20} cols={21}/>
     <div class='info'>
-      <Show when={best_score_depth0()}>{bb => 
-          <>
-            Best Score:
-            <span class='san'>{bb().san}</span>
-            <span class='score'>{bb().score}</span>
-          </>
-        }</Show>
     </div>
   </div>
   <div class='editor'>
@@ -351,17 +343,19 @@ function Editor(props: { fen?: string }) {
   </>)
 }
 
-const NestNode = (props: { node: AlphaBetaRuleNode, in_edit: Node | undefined, on_go_to_line: (_: number) => void, on_edit: (_: Node | undefined) => void }) => {
+const NestNode = (props: { node: RuleNode, in_edit: Node | undefined, on_go_to_line: (_: number) => void, on_edit: (_: Node | undefined) => void }) => {
 
   return (<>
     <span onClick={() => props.on_go_to_line(props.node.line)} class='rule'>
         <span class='text'>{props.node.rule}</span>
-        <Show when={props.node.best_san_score}>{match =>
-          <>
-            <span class='score'>{match().score}</span>
-            <span class='san'>{match().san}</span>
-          </>
+        <Show when={props.node.san}>{san =>
+          <span class='san'>{san()}</span>
         }</Show>
+        <Show when={props.node.nb_visits > 0}>
+          <>
+          <span class='visits'>{props.node.nb_visits}</span>
+          </>
+        </Show>
     </span>
       <Show when={props.node.children.length > 0}>
         <div class='nest'>

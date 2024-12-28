@@ -1,8 +1,16 @@
-import { hopefox } from 'hopefox'
+import { Chess, hopefox, parseUci } from 'hopefox'
 import { Pattern, Puzzle, puzzle_all_tags } from "./puzzles"
 import tenk from './assets/tenk_puzzle.csv?raw'
 import { parse_puzzles } from './fixture'
-import { bestsan } from 'hopefox'
+import { bestsan3 } from 'hopefox'
+import { get_module } from './wasm_stuff'
+import { parseFen } from 'hopefox/fen'
+import { makeSan } from 'hopefox/san'
+
+export function uci_to_san(fen: string, uci: string) {
+  let pos = Chess.fromSetup(parseFen(fen).unwrap()).unwrap()
+  return makeSan(pos, parseUci(uci)!)
+}
 
 let puzzles: Puzzle[] = []
 let filter: string | undefined = undefined
@@ -12,7 +20,11 @@ let dirty_patterns = true
 
 let rules = ''
 
+let search: (fen: string, rules: string) => string
+
 const init = async () => {
+
+  search = await get_module()
 
   puzzles = await fetch_puzzles()
   dirty_patterns = true
@@ -97,31 +109,47 @@ const send_puzzles = () => {
     dirty_patterns = false
   }
 
-  let all = puzzles
-  let filtered = filter ? puzzles.filter(yn_filter(filter)) : puzzles
+  let all = puzzles.slice(200, 800)
+  all = all.filter(_ => !['00JzT', '00KNB', '00KYC', '00Kd8'].includes(_.id))
+  all = all.filter(_ => !['00L4x', '00LMb'].includes(_.id))
+  all = all.filter(_ => _.sans[0].includes('R') && _.sans[0].length === 3)
+  //all = all.filter(_ => ['00JZk', '00KO5', '015ah', '00aL1'].includes(_.id))
+  let filtered = filter ? all.filter(yn_filter(filter)) : all
 
-  filtered = filtered.slice(0, 20)
-
-  filtered.forEach((_, i) => {
-    if (i % 100 === 0) {
+  filtered.slice(0, 15).forEach((_, i) => {
+    if (i % 2 === 0) {
       send_progress(i, filtered.length)
     }
     _.solve = { i: solve_p(_) }
   })
 
-  filtered = filter ? puzzles.filter(yn_filter(filter)) : filtered
+  filtered = filter ? filtered.filter(yn_filter(filter)) : filtered
 
   postMessage({ t: 'puzzles', d: { all, filtered }})
   clear_progress()
 }
 
+
+
 function solve_p(p: Puzzle) {
     for (let i = 0; i < p.move_fens.length; i += 2) {
         let fen = p.move_fens[i]
         let san = p.sans[i]
+        /*
+        let res_uci = search(fen, rules).split('\n')[0].split(' ')[0]
+        console.log(p.id, res_uci)
+        if (!res_uci) {
+          return i
+        }
+        let res = uci_to_san(fen, res_uci)
+        console.log(res)
+        if (res !== san) {
+          return i
+        }
 
-        if (bestsan(fen, rules) !== san) {
-          console.log(p.id, san, bestsan(fen, rules))
+          */
+        if (bestsan3(fen, rules) !== san) {
+          console.log(p.id, san, bestsan3(fen, rules))
             return i
         } else {
         }
