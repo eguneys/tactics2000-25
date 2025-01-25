@@ -7,7 +7,7 @@ import { MyWorkerContext, MyWorkerProvider } from './Worker'
 import { Shala } from './Shalala'
 import { stepwiseScroll } from './common/scroll'
 import { INITIAL_FEN } from 'chessops/fen'
-import { rule_search_tree, RuleNode } from 'hopefox'
+import { context2uci, find_san4, Hopefox, parse_rule_plus, rule_search_tree, RuleNode } from 'hopefox'
 
 const str_hash = (str: string) => {
   var hash = 0,
@@ -297,6 +297,17 @@ function Editor(props: { fen?: string }) {
     return pcache[key]
   })
 
+
+  createEffect(() => {
+    let rr = rules()
+    if (!props.fen) {
+      return
+    }
+
+    console.log(find_san4(props.fen, rr))
+  })
+
+
   const [in_edit, set_in_edit] = createSignal<Node | undefined>(undefined)
 
   let $el_rules: HTMLTextAreaElement
@@ -348,9 +359,9 @@ const NestNode = (props: { node: RuleNode, in_edit: Node | undefined, on_go_to_l
   return (<>
     <span onClick={() => props.on_go_to_line(props.node.line)} class='rule'>
         <span class='text'>{props.node.rule}</span>
-        <Show when={props.node.san}>{san =>
-          <span class='san'>{san()}</span>
-        }</Show>
+        <For each={props.node.san.slice(0, 2)}>{san =>
+          <span class='san'>{san}</span>
+        }</For>
         <Show when={props.node.nb_visits > 0}>
           <>
           <span class='visits'>{props.node.nb_visits}</span>

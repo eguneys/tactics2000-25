@@ -1,4 +1,4 @@
-import { Chess, hopefox, parseUci } from 'hopefox'
+import { Chess, find_san4, hopefox, parseUci } from 'hopefox'
 import { Pattern, Puzzle, puzzle_all_tags } from "./puzzles"
 import tenk from './assets/tenk_puzzle.csv?raw'
 import { parse_puzzles } from './fixture'
@@ -109,14 +109,16 @@ const send_puzzles = () => {
     dirty_patterns = false
   }
 
-  let all = puzzles.slice(200, 800)
+  let all = puzzles.slice(333, -1)
   all = all.filter(_ => !['00JzT', '00KNB', '00KYC', '00Kd8'].includes(_.id))
   all = all.filter(_ => !['00L4x', '00LMb'].includes(_.id))
-  all = all.filter(_ => _.sans[0].includes('R') && _.sans[0].length === 3)
-  //all = all.filter(_ => ['00JZk', '00KO5', '015ah', '00aL1'].includes(_.id))
+  //all = all.filter(_ => _.sans[0].includes('R') && _.sans[0].length === 3)
+  //all = all.filter(_ => _.sans[0].includes('N'))
+  all = all.filter(_ => _.sans[0].includes('Q'))
+  //all = all.filter(_ => ['01Bcd', '00Ohu'].includes(_.id))
   let filtered = filter ? all.filter(yn_filter(filter)) : all
 
-  filtered.slice(0, 15).forEach((_, i) => {
+  filtered.slice(0, 10).forEach((_, i) => {
     if (i % 2 === 0) {
       send_progress(i, filtered.length)
     }
@@ -129,30 +131,19 @@ const send_puzzles = () => {
   clear_progress()
 }
 
-
-
 function solve_p(p: Puzzle) {
     for (let i = 0; i < p.move_fens.length; i += 2) {
         let fen = p.move_fens[i]
         let san = p.sans[i]
-        /*
-        let res_uci = search(fen, rules).split('\n')[0].split(' ')[0]
-        console.log(p.id, res_uci)
-        if (!res_uci) {
-          return i
-        }
-        let res = uci_to_san(fen, res_uci)
-        console.log(res)
-        if (res !== san) {
-          return i
+        if (i > 1) {
+          return 99
         }
 
-          */
-        if (bestsan3(fen, rules) !== san) {
-          console.log(p.id, san, bestsan3(fen, rules))
-            return i
+        if (find_san4(fen, rules) !== san) {
+          return i
         } else {
         }
+
     }
     return 99
 }
