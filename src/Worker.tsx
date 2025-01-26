@@ -1,6 +1,6 @@
 import { Accessor, createContext, createSignal, JSX } from "solid-js"
 import MyWorker from './worker?worker'
-import { Pattern, Puzzle } from "./puzzles"
+import { Pattern, Puzzle, Rule } from "./puzzles"
 
 type MyWorkerType = {
     error: Accessor<string | undefined>,
@@ -9,7 +9,7 @@ type MyWorkerType = {
     all_puzzles: Accessor<Puzzle[] | undefined>,
     filter_puzzles: (_?: string) => void,
     set_patterns: (_: Pattern[]) => void
-    set_rules: (_: string) => void
+    update_rules: (_: Rule[]) => void
 }
 
 export const MyWorkerContext = createContext<MyWorkerType>()
@@ -27,7 +27,7 @@ export const MyWorkerProvider = (props: { children: JSX.Element }) => {
         set_error(err.message)
     }
 
-    let rules: string = ''
+    let rules: Rule[] = []
     let filter: string | undefined = undefined
     worker.onmessage = (e) => {
         if (e.data === 'ready') {
@@ -60,7 +60,7 @@ export const MyWorkerProvider = (props: { children: JSX.Element }) => {
             worker.postMessage({t: 'cancel'})
             worker.postMessage({ t: 'patterns', d: patterns })
         },
-        set_rules(_rules: string) {
+        update_rules(_rules: Rule[]) {
             rules = _rules
             worker.postMessage({ t: 'rules', d: rules })
         }

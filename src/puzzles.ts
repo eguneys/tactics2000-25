@@ -8,10 +8,15 @@ export type Puzzle = {
   tags: Record<string, true>,
   has_tags: Record<string, true>,
   has_pattern: Record<string, true>,
-  solve: {
-    i: number | undefined
-  }
+  rules: RuleSolve[]
 }
+
+export type RuleSolve = {
+  rule: Rule,
+  solve: number | undefined 
+}
+
+export type Rule = { name: string, rule: string }
 
 export type Pattern = { name: string, pattern: string }
 
@@ -30,12 +35,20 @@ export const puzzle_has_tags = (puzzle: Puzzle): Record<string, true> => {
   return res
 }
 
+const rule_to_tags = (rule: RuleSolve) => {
+  if (rule.solve === undefined) {
+    return ['solved', `solved_${rule.rule.name}`]
+  } else {
+    return [`failed_${rule.rule.name}`]
+  }
+}
+
 export const puzzle_all_tags = (puzzle: Puzzle): Record<string, boolean> => {
   let res = { ...puzzle.tags, ...puzzle_has_tags(puzzle) }
 
-  if (puzzle.solve.i === 99) {
-    res.solved = true
-  }
+  let tags = [...new Set(puzzle.rules.flatMap(rule_to_tags))]
+
+  tags.forEach(tag => res[tag] = true)
 
   return res
 }

@@ -5,8 +5,6 @@
 }
 
 .app-wrap {
-    width: 100vw;
-    height: calc(100vh - 2em);
     display: flex;
     flex-flow: row;
 
@@ -71,8 +69,40 @@
 
     .editor-wrap {
         display: flex;
-        padding: 0.3em;
-        gap: 1em;
+        flex-flow: column;
+        gap: 0.2em;
+
+        .rule-list {
+            display: flex;
+            flex-flow: column;
+            flex: 0 0 200px;
+            min-height: 200px;
+
+            .tools {
+                display: flex;
+                justify-content: space-between;
+                margin: 0.3em 0.5em;
+            }
+
+            .scroll-wrap {
+                overflow-y: scroll;
+                flex: 1;
+                background: gray;
+                .rule {
+                    user-select: none;
+                    cursor: pointer;
+                    padding: 0.2em;
+                    background: white;
+                    color: black;
+
+                    &.active {
+                        background:hsl(350, 62%, 52%);
+                        color: white;
+                    }
+                }
+            }
+        }
+
 
         .editor-input {
             resize: none;

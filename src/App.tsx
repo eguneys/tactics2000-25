@@ -1,4 +1,4 @@
-import { createEffect, createMemo, createSignal, For, mapArray, on, onMount, Show, useContext } from 'solid-js'
+import { createEffect, createMemo, createSignal, For, mapArray, on, Show, useContext } from 'solid-js'
 import './App.scss'
 import Chessboard from './Chessboard'
 import { makePersistedNamespaced } from './persisted'
@@ -7,9 +7,10 @@ import { MyWorkerContext, MyWorkerProvider } from './Worker'
 import { Shala } from './Shalala'
 import { stepwiseScroll } from './common/scroll'
 import { INITIAL_FEN } from 'chessops/fen'
-import { context2uci, find_san4, Hopefox, parse_rule_plus, rule_search_tree, RuleNode } from 'hopefox'
+import { RuleNode } from 'hopefox'
+import throttle from './common/throttle'
 
-const str_hash = (str: string) => {
+export const str_hash = (str: string) => {
   var hash = 0,
     i, chr;
   if (str.length === 0) return hash;
@@ -104,12 +105,12 @@ function WithWorker() {
           </div>
           <div class='tree'>
             <For each={puzzle_sans()}>{ (san, i) =>
-              <div class={'san' + (i_selected_sans() === i() ? ' active': '') + ((selected_puzzle()!.solve.i ?? 99) <= i() ? ' fail': '') }  onClick={() => set_i_selected_sans(i)}>{san}</div>
+              <div class={'san' + (i_selected_sans() === i() ? ' active': '') }  onClick={() => set_i_selected_sans(i)}>{san}</div>
             }</For>
           </div>
         </div>
         <div class='editor-wrap'>
-          <Editor fen={shalala.fen_uci[0]} />
+          <Editor2 fen={shalala.fen_uci[0]} />
         </div>
 
         <div class='puzzles-wrap'>
@@ -163,10 +164,6 @@ class PuzzleMemo {
     return puzzle_all_tags(this.puzzle)
   }
 
-  get solve() {
-    return this.puzzle.solve
-  }
-
   private constructor(readonly puzzle: Puzzle) {}
 }
 
@@ -183,7 +180,7 @@ const Puzzles = (props: { on_selected_puzzle: (_?: Puzzle) => void }) => {
   const selected_puzzle = createMemo(() => filtered().find(_ => _.id === id_selected()))
   //const selected_fen = createMemo(() => selected_puzzle()?.fen)
 
-  const nb_solved = createMemo(() => filtered().filter(_ => _.solve.i === 99).length)
+  //const nb_solved = createMemo(() => filtered().filter(_ => _.solve.i === 99).length)
 
   const toggle_id = () => {
     let f = filter()
@@ -245,9 +242,9 @@ const Puzzles = (props: { on_selected_puzzle: (_?: Puzzle) => void }) => {
 
   let $el_filter: HTMLInputElement
 
-  const on_filter_change = (filter: string) => {
+  const on_filter_change = throttle(1000, (filter: string) => {
     set_filter(filter)
-  }
+  })
 
   return (
       <div class='puzzles'>
@@ -261,13 +258,12 @@ const Puzzles = (props: { on_selected_puzzle: (_?: Puzzle) => void }) => {
             <div onClick={() => set_id_selected(puzzle.id)} class={'puzzle' + (puzzle.id === id_selected() ? ' active' : '')}>
               <span class='id'><a target="_blank" href={`https://lichess.org/training/${puzzle.id}`}>{puzzle.id}</a></span>
               <span class='has-tags'><For each={Object.keys(puzzle.has_tags).filter(_ => !_.includes('id_'))}>{tag => <span class='tag'>{tag}</span>}</For></span>
-              <span class='tags'><For each={Object.keys(puzzle.tags)}>{tag => <span class='tag'>{tag}</span>}</For></span>
+              <span class='tags'><For each={Object.keys(puzzle.all_tags)}>{tag => <span class='tag'>{tag}</span>}</For></span>
             </div>
         }</For>
       }</Show>
       </div>
       <div class='info'>
-        <span class='solved'>Solved {`${nb_solved()}/${filtered().length}`}</span>
         <button onClick={toggle_solved}>Toggle Solved</button>
         <button onClick={toggle_id}>Toggle Id</button>
       </div>
@@ -275,82 +271,82 @@ const Puzzles = (props: { on_selected_puzzle: (_?: Puzzle) => void }) => {
   )
 }
 
-function Editor(props: { fen?: string }) {
 
-  let pcache: Record<string, RuleNode> = {}
-  const { set_rules: c_set_rules } = useContext(MyWorkerContext)!
+function Editor2(_props: { fen?: string }) {
 
-  const [rules, set_rules] = makePersistedNamespaced<string>('', 'rules')
 
-  c_set_rules(rules())
+  function new_rule() {
+    let i = 1
+    let name = `rule${i}`
+    let l = rule_list()
 
-  const children = createMemo(() => {
-    if (!props.fen) {
-      return undefined
+    while (l.find(_ => _.name === name)) {
+      name = `rule${i++}`
     }
 
-    let key = str_hash(props.fen + rules())
-    if (!pcache[key]) {
-      pcache[key] = rule_search_tree(props.fen, rules())
-      //pcache[key].children.sort((a, b) => b.nb_visits - a.nb_visits)
-    }
-    return pcache[key]
-  })
+    return { name, rule: '' }
+  }
+
+  const [rule_list, set_rule_list] = makePersistedNamespaced([{name: 'rule1', rule: ''}], 'rule-list')
+
+  const [i_rule_list, set_i_rule_list] = createSignal(0)
+
+  const { update_rules } = useContext(MyWorkerContext)!
+
+  update_rules(rule_list())
 
 
-  createEffect(() => {
-    let rr = rules()
-    if (!props.fen) {
-      return
-    }
+  const selected_rule = createMemo(() => rule_list()[i_rule_list()])
 
-    console.log(find_san4(props.fen, rr))
-  })
-
-
-  const [in_edit, set_in_edit] = createSignal<Node | undefined>(undefined)
-
-  let $el_rules: HTMLTextAreaElement
-
-  onMount(() => {
-    $el_rules.value = rules()
-  })
 
   const on_set_rules = (e: KeyboardEvent) => {
 
     if (e.key === 'Escape') {
-      set_rules($el_rules.value)
-      c_set_rules($el_rules.value)
+      let rule = (e.target as HTMLTextAreaElement).value
+      let ss = selected_rule()
+      let updated = { name: ss.name, rule }
+
+      let l = rule_list()
+      let i = l.findIndex(_ => _.name === ss.name)
+      l.splice(i, 1, updated)
+      set_rule_list([...l])
+
+      update_rules([updated])
     }
   }
 
 
+  const add_new_rule = () => {
+    set_rule_list([new_rule(), ...rule_list()])
+  }
 
-  const on_go_to_line = (line: number) => {
-    let i = $el_rules.value.split('\n').slice(0, line).map(_ => _.length + 1).reduce((a, b) => a + b, 0)
-      $el_rules.setSelectionRange(i, i)
-      $el_rules.blur()
-      $el_rules.focus()
-      $el_rules.setSelectionRange(i, i + 1)
+  const delete_rule = () => {
+    let l = rule_list()
+    if (l.length === 1) {
+      return
+    }
+    let dd = l.splice(i_rule_list(), 1)
+    set_rule_list([...l])
+    update_rules(dd.map(_ => ({name: _.name, rule: ''})))
   }
 
   return (<>
-  <div class='text-wrap'>
-    <textarea ref={_ => $el_rules = _} class='editor-input' onKeyDown={on_set_rules} title='rules' rows={20} cols={21}/>
-    <div class='info'>
+    <div class='rule-list'>
+      <div class='scroll-wrap'>
+        <For each={rule_list()}>{(rule, i) =>
+          <div onClick={() => set_i_rule_list(i())} class={'rule' + (i() === i_rule_list() ? ' active' : '')}>{rule.name}</div>
+        }</For>
+      </div>
+      <div class='tools'>
+        <div onClick={add_new_rule} class='rule'>+ New rule</div>
+        <div onClick={delete_rule} class='rule'>- Delete rule</div>
+      </div>
     </div>
-  </div>
-  <div class='editor'>
-    <div class='scroll-wrap'>
-        <Show when={children()}>{children =>
-          <div class='nest'>
-            <For each={children().children}>{node =>
-              <NestNode node={node} in_edit={in_edit()} on_edit={set_in_edit} on_go_to_line={on_go_to_line} />
-            }</For>
-          </div>
-        }</Show>
+    <div class='text-wrap'>
+      <textarea class='editor-input' onKeyDown={on_set_rules} title='rules' rows={20} cols={21} value={selected_rule()?.rule ?? 'Select a rule'} />
+      <div class='info'>
+      </div>
     </div>
-  </div>
   </>)
 }
 
