@@ -7,20 +7,9 @@ import { MyWorkerContext, MyWorkerProvider } from './Worker'
 import { Shala } from './Shalala'
 import { stepwiseScroll } from './common/scroll'
 import { INITIAL_FEN } from 'chessops/fen'
-import { RuleNode } from 'hopefox'
+import { find_san7, make_root, print_rules } from 'hopefox'
 import throttle from './common/throttle'
 
-export const str_hash = (str: string) => {
-  var hash = 0,
-    i, chr;
-  if (str.length === 0) return hash;
-  for (i = 0; i < str.length; i++) {
-    chr = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + chr;
-    hash |= 0; // Convert to 32bit integer
-  }
-  return hash;
-}
 
 function App() {
   return (<>
@@ -170,10 +159,9 @@ class PuzzleMemo {
 const Puzzles = (props: { on_selected_puzzle: (_?: Puzzle) => void }) => {
 
   let { puzzles, filter_puzzles } = useContext(MyWorkerContext)!
+  const filtered = createMemo(mapArray(() => puzzles(), PuzzleMemo.create))
 
   const [filter, set_filter] = makePersistedNamespaced<string | undefined>(undefined, 'filter')
-
-  const filtered = createMemo(mapArray(() => puzzles(), PuzzleMemo.create))
 
   const [id_selected, set_id_selected] = makePersistedNamespaced<string | undefined>(undefined, 'id_selected')
 
@@ -272,7 +260,18 @@ const Puzzles = (props: { on_selected_puzzle: (_?: Puzzle) => void }) => {
 }
 
 
-function Editor2(_props: { fen?: string }) {
+function Editor2(props: { fen?: string }) {
+
+  let { all_puzzles } = useContext(MyWorkerContext)!
+  const filtered = createMemo(mapArray(() => all_puzzles(), PuzzleMemo.create))
+
+  const nb_failed = (name: string) => {
+    return filtered().filter(_ => _.all_tags[`failed_${name}`]).length
+  }
+  const nb_solved = (name: string) => {
+    return filtered().filter(_ => _.all_tags[`solved_${name}`]).length
+  }
+
 
 
   function new_rule() {
@@ -330,11 +329,34 @@ function Editor2(_props: { fen?: string }) {
     update_rules(dd.map(_ => ({name: _.name, rule: ''})))
   }
 
+
+  let found_san = createMemo(() => { 
+    if (!props.fen) {
+      return undefined
+    }
+    try {
+      return find_san7(props.fen, selected_rule().rule)
+    } catch(e) {   
+      return 'Error' + e
+    }
+  })
+
+  createEffect(on(selected_rule, (rule) => {
+    if (!rule || !props.fen) {
+      return
+    }
+
+    console.log(print_rules(make_root(props.fen, rule.rule)))
+  }))
+
   return (<>
     <div class='rule-list'>
       <div class='scroll-wrap'>
         <For each={rule_list()}>{(rule, i) =>
-          <div onClick={() => set_i_rule_list(i())} class={'rule' + (i() === i_rule_list() ? ' active' : '')}>{rule.name}</div>
+          <div onClick={() => set_i_rule_list(i())} class={'rule' + (i() === i_rule_list() ? ' active' : '')}>
+            <span class='name'>{rule.name}</span>
+            <span class='stats'>f {nb_failed(rule.name)} / s {nb_solved(rule.name)}</span>
+          </div>
         }</For>
       </div>
       <div class='tools'>
@@ -342,9 +364,11 @@ function Editor2(_props: { fen?: string }) {
         <div onClick={delete_rule} class='rule'>- Delete rule</div>
       </div>
     </div>
+
     <div class='text-wrap'>
-      <textarea class='editor-input' onKeyDown={on_set_rules} title='rules' rows={20} cols={21} value={selected_rule()?.rule ?? 'Select a rule'} />
+      <textarea class='editor-input' onKeyDown={on_set_rules} title='rules' rows={13} cols={21} value={selected_rule()?.rule ?? 'Select a rule'} />
       <div class='info'>
+        <Show when={found_san()}>{ found_san => <span>{found_san()}</span>}</Show>
       </div>
     </div>
   </>)

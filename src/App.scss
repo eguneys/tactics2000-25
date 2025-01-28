@@ -89,6 +89,10 @@
                 flex: 1;
                 background: gray;
                 .rule {
+
+                    display: flex;
+                    justify-content: space-between;
+
                     user-select: none;
                     cursor: pointer;
                     padding: 0.2em;
@@ -214,8 +218,9 @@
         }
 
         .list {
-            overflow: scroll;
-            max-height: 60vh;
+            background:hsl(0, 0%, 86%);
+            overflow-y: scroll;
+            height: 60vh;
 
 
             .puzzle {

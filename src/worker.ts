@@ -1,7 +1,6 @@
-import { Chess, find_san4, hopefox, parseUci } from 'hopefox'
-import { Pattern, Puzzle, puzzle_all_tags, Rule } from "./puzzles"
+import { Chess, hopefox, parseUci } from 'hopefox'
+import { parse_puzzles, Pattern, Puzzle, puzzle_all_tags, Rule, solve_p } from "./puzzles"
 import tenk from './assets/tenk_puzzle.csv?raw'
-import { parse_puzzles } from './fixture'
 import { parseFen } from 'hopefox/fen'
 import { makeSan } from 'hopefox/san'
 
@@ -29,7 +28,6 @@ const init = async () => {
 }
 
 const set_rules = (r: Rule[]) => {
-  let dd = r.filter(_ => _.rule.length === 0)
   let xx = r.filter(_ => _.rule.length > 0)
   rules = [
     ...rules.filter(e => !r.find(_ => _.name === e.name)),
@@ -107,14 +105,15 @@ const send_puzzles = () => {
     dirty_patterns = false
   }
 
-  let all = puzzles.slice(0)
-  all = all.filter(_ => !['00JzT', '00KNB', '00KYC', '00Kd8'].includes(_.id))
-  all = all.filter(_ => !['00L4x', '00LMb'].includes(_.id))
+  let all = puzzles
+  //all = all.filter(_ => !['00JzT', '00KNB', '00KYC', '00Kd8'].includes(_.id))
+  //all = all.filter(_ => !['00L4x', '00LMb'].includes(_.id))
   //all = all.filter(_ => _.sans[0].includes('R') && _.sans[0].length === 3)
   //all = all.filter(_ => _.sans[0].includes('N'))
-  all = all.filter(_ => _.sans[0].includes('Q'))
+  all = all.filter(_ => _.sans[0].includes('B'))
   //all = all.filter(_ => ['01Bcd', '00Ohu'].includes(_.id))
-  let filtered = all//filter ? all.filter(yn_filter(filter)) : all
+
+  let filtered = all.slice(0, 3000)//filter ? all.filter(yn_filter(filter)) : all
 
   filtered.forEach((_, i) => {
     if (i % 2 === 0) {
@@ -129,22 +128,6 @@ const send_puzzles = () => {
   clear_progress()
 }
 
-function solve_p(p: Puzzle, rule: string) {
-    for (let i = 0; i < p.move_fens.length; i += 2) {
-        let fen = p.move_fens[i]
-        let san = p.sans[i]
-        if (i > 1) {
-          return undefined
-        }
-
-        if (find_san4(fen, rule) !== san) {
-          return i
-        } else {
-        }
-
-    }
-    return undefined
-}
 
 onmessage = (e) => {
     switch (e.data.t) {
