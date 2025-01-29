@@ -1,4 +1,4 @@
-import { createEffect, createMemo, createSignal, For, mapArray, on, Show, useContext } from 'solid-js'
+import { batch, createEffect, createMemo, createSignal, For, mapArray, on, Show, useContext } from 'solid-js'
 import './App.scss'
 import Chessboard from './Chessboard'
 import { makePersistedNamespaced } from './persisted'
@@ -314,7 +314,10 @@ function Editor2(props: { fen?: string }) {
 
 
   const add_new_rule = () => {
-    set_rule_list([new_rule(), ...rule_list()])
+    batch(() => {
+      set_rule_list([new_rule(), ...rule_list()])
+      set_i_rule_list(0)
+    })
   }
 
   const delete_rule = () => {
