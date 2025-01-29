@@ -3,19 +3,19 @@ import './App.scss'
 import Chessboard from './Chessboard'
 import { makePersistedNamespaced } from './persisted'
 import { Puzzle, puzzle_all_tags, puzzle_has_tags } from './puzzles'
-import { MyWorkerContext, MyWorkerProvider } from './Worker'
 import { Shala } from './Shalala'
 import { stepwiseScroll } from './common/scroll'
 import { INITIAL_FEN } from 'chessops/fen'
 import { find_san7, make_root, print_rules } from 'hopefox'
-import throttle from './common/throttle'
+import { WorkerContext, WorkerProvider } from './Worker2'
+import { debounce } from './common/timing'
 
 
 function App() {
   return (<>
-    <MyWorkerProvider>
+    <WorkerProvider>
       <WithWorker />
-    </MyWorkerProvider>
+    </WorkerProvider>
   </>)
 }
 
@@ -115,11 +115,11 @@ function WithWorker() {
 
 const Progress = () => {
 
-  const { progress } = useContext(MyWorkerContext)!
+  const ww = useContext(WorkerContext)!
 
 
   return (<>
-    <Show when={progress()}>{progress =>
+    <Show when={ww.progress}>{progress =>
       <div class='progress'> {progress()[0]}/{progress()[1]} </div>
     }</Show>
   </>
@@ -158,8 +158,9 @@ class PuzzleMemo {
 
 const Puzzles = (props: { on_selected_puzzle: (_?: Puzzle) => void }) => {
 
-  let { puzzles, filter_puzzles } = useContext(MyWorkerContext)!
-  const filtered = createMemo(mapArray(() => puzzles(), PuzzleMemo.create))
+  let ww = useContext(WorkerContext)!
+
+  const filtered = createMemo(mapArray(() => ww.puzzles, PuzzleMemo.create))
 
   const [filter, set_filter] = makePersistedNamespaced<string | undefined>(undefined, 'filter')
 
@@ -224,15 +225,15 @@ const Puzzles = (props: { on_selected_puzzle: (_?: Puzzle) => void }) => {
   }))
 
   createEffect(on(filter, f => {
-    filter_puzzles(f)
+    ww.filter(f)
   }))
 
 
   let $el_filter: HTMLInputElement
 
-  const on_filter_change = throttle(1000, (filter: string) => {
+  const on_filter_change = debounce((filter: string) => {
     set_filter(filter)
-  })
+  }, 1100)
 
   return (
       <div class='puzzles'>
@@ -262,8 +263,8 @@ const Puzzles = (props: { on_selected_puzzle: (_?: Puzzle) => void }) => {
 
 function Editor2(props: { fen?: string }) {
 
-  let { all_puzzles } = useContext(MyWorkerContext)!
-  const filtered = createMemo(mapArray(() => all_puzzles(), PuzzleMemo.create))
+  let ww = useContext(WorkerContext)!
+  const filtered = createMemo(mapArray(() => ww.all, PuzzleMemo.create))
 
   const nb_failed = (name: string) => {
     return filtered().filter(_ => _.all_tags[`failed_${name}`]).length
@@ -290,10 +291,7 @@ function Editor2(props: { fen?: string }) {
 
   const [i_rule_list, set_i_rule_list] = createSignal(0)
 
-  const { update_rules } = useContext(MyWorkerContext)!
-
-  update_rules(rule_list())
-
+  ww.rules(rule_list())
 
   const selected_rule = createMemo(() => rule_list()[i_rule_list()])
 
@@ -310,7 +308,7 @@ function Editor2(props: { fen?: string }) {
       l.splice(i, 1, updated)
       set_rule_list([...l])
 
-      update_rules([updated])
+      ww.rules([updated])
     }
   }
 
@@ -326,7 +324,7 @@ function Editor2(props: { fen?: string }) {
     }
     let dd = l.splice(i_rule_list(), 1)
     set_rule_list([...l])
-    update_rules(dd.map(_ => ({name: _.name, rule: ''})))
+    ww.rules(dd.map(_ => ({name: _.name, rule: ''})))
   }
 
 
@@ -373,30 +371,5 @@ function Editor2(props: { fen?: string }) {
     </div>
   </>)
 }
-
-const NestNode = (props: { node: RuleNode, in_edit: Node | undefined, on_go_to_line: (_: number) => void, on_edit: (_: Node | undefined) => void }) => {
-
-  return (<>
-    <span onClick={() => props.on_go_to_line(props.node.line)} class='rule'>
-        <span class='text'>{props.node.rule}</span>
-        <For each={props.node.san.slice(0, 2)}>{san =>
-          <span class='san'>{san}</span>
-        }</For>
-        <Show when={props.node.nb_visits > 0}>
-          <>
-          <span class='visits'>{props.node.nb_visits}</span>
-          </>
-        </Show>
-    </span>
-      <Show when={props.node.children.length > 0}>
-        <div class='nest'>
-          <For each={props.node.children}>{node =>
-            <NestNode {...props} node={node} />
-          }</For>
-        </div>
-      </Show>
-  </>)
-}
-
 
 export default App

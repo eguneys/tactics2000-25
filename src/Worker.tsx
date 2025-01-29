@@ -1,5 +1,5 @@
 import { Accessor, createContext, createSignal, JSX } from "solid-js"
-import MyWorker from './worker?worker'
+import MyWorker from './worker2?worker'
 import { Pattern, Puzzle, Rule } from "./puzzles"
 
 type MyWorkerType = {
@@ -31,6 +31,7 @@ export const MyWorkerProvider = (props: { children: JSX.Element }) => {
     let filter: string | undefined = undefined
     worker.onmessage = (e) => {
         if (e.data === 'ready') {
+            console.log('ready')
             worker.postMessage({ t: 'filter', d: filter })
             worker.postMessage({ t: 'rules', d: rules })
             return

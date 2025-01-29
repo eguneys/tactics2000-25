@@ -1,13 +1,6 @@
-import { Chess, hopefox, parseUci } from 'hopefox'
+import { hopefox } from 'hopefox'
 import { parse_puzzles, Pattern, Puzzle, puzzle_all_tags, Rule, solve_p } from "./puzzles"
 import tenk from './assets/tenk_puzzle.csv?raw'
-import { parseFen } from 'hopefox/fen'
-import { makeSan } from 'hopefox/san'
-
-export function uci_to_san(fen: string, uci: string) {
-  let pos = Chess.fromSetup(parseFen(fen).unwrap()).unwrap()
-  return makeSan(pos, parseUci(uci)!)
-}
 
 let puzzles: Puzzle[] = []
 let filter: string | undefined = undefined

@@ -98,19 +98,26 @@ const rule_to_tags = (rule: RuleSolve) => {
 
 
 
-const lruCache = new LRUCache(1000); // Set a capacity
+const lruCache = new LRUCache(60000); // Set a capacity
 
 function cache_san(fen: string, rule: string) {
     const key = `${fen}${rule}`;
 
     const cachedValue = lruCache.get(key);
     if (cachedValue !== undefined) {
+      if (cachedValue === '--') {
+        return undefined
+      }
         return cachedValue;
     }
 
     try {
       const result = find_san7(fen, rule);
-      lruCache.put(key, result);
+      if (result === undefined) {
+        lruCache.put(key, '--')
+      } else {
+        lruCache.put(key, result);
+      }
       return result;
     } catch {
       return undefined
@@ -124,7 +131,7 @@ export function solve_p(p: Puzzle, rule: string) {
         if (i > 1) {
           return undefined
         }
-      //let solved_san = find_san4(fen, rule)
+      //let solved_san = find_san7(fen, rule)
       let solved_san = cache_san(fen, rule)
       if (solved_san === undefined) {
         return -1
@@ -136,4 +143,26 @@ export function solve_p(p: Puzzle, rule: string) {
 
     }
     return undefined
+}
+
+
+export const yn_filter = (filter: string) => {
+  return (puzzle: Puzzle) => {
+    let all_tags = puzzle_all_tags(puzzle)
+    let [y,n] = filter.split('_!_').map(_ => _.trim())
+
+    let ys = y === '' ? [] : y.split(' ')
+
+    if (n) {
+
+      let ns = n.split(' ')
+
+      if (ns.find(_ => all_tags[_])) {
+        return false
+      }
+    }
+
+    return ys.every(y => all_tags[y])
+  }
+
 }
