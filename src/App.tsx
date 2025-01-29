@@ -342,13 +342,14 @@ function Editor2(props: { fen?: string }) {
     }
   })
 
-  createEffect(on(selected_rule, (rule) => {
+  const ascii_san = createMemo(() => {
+    let rule = selected_rule()
     if (!rule || !props.fen) {
       return
     }
 
-    console.log(print_rules(make_root(props.fen, rule.rule)))
-  }))
+    return print_rules(make_root(props.fen, rule.rule))
+  })
 
   return (<>
     <div class='rule-list'>
@@ -368,7 +369,9 @@ function Editor2(props: { fen?: string }) {
 
     <div class='text-wrap'>
       <textarea class='editor-input' onKeyDown={on_set_rules} title='rules' rows={13} cols={21} value={selected_rule()?.rule ?? 'Select a rule'} />
-      <div class='info'>
+      <div class='ascii'>
+        <textarea disabled={true}>{ascii_san()}</textarea>
+
         <Show when={found_san()}>{ found_san => <span>{found_san()}</span>}</Show>
       </div>
     </div>
