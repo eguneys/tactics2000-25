@@ -1,4 +1,4 @@
-import { Chess, find_san7, LRUCache, parseUci } from "hopefox"
+import { Chess, find_san8, LRUCache, parseUci } from "hopefox"
 import { makeFen, parseFen } from "hopefox/fen"
 import { makeSan } from "hopefox/san"
 
@@ -112,7 +112,7 @@ function cache_san(fen: string, rule: string) {
     }
 
     try {
-      const result = find_san7(fen, rule);
+      const result = find_san8(fen, rule);
       if (result === undefined) {
         lruCache.put(key, '--')
       } else {
