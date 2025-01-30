@@ -39,6 +39,7 @@ jobs:
         run: |
            cd web
            pnpm install
+           pnpm link ../hopefox
            pnpm build
 
       - name: Upload production-ready build files
