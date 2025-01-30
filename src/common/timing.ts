@@ -1,3 +1,5 @@
+type Timeout = number
+
 /***
  * Wraps an asynchronous function to ensure only one call at a time is in
  * flight. Any extra calls are dropped, except the last one, which waits for
