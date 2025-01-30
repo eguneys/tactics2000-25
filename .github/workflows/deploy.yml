@@ -33,7 +33,7 @@ jobs:
         run: |
            cd hopefox
            pnpm install
-           pnpm bundle
+           pnpm build
 
       - name: Build project
         run: |
