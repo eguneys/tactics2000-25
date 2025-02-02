@@ -6,7 +6,7 @@ import { Puzzle, puzzle_all_tags, puzzle_has_tags } from './puzzles'
 import { Shala } from './Shalala'
 import { stepwiseScroll } from './common/scroll'
 import { INITIAL_FEN } from 'chessops/fen'
-import { find_san8, make_root, print_rules } from 'hopefox'
+import { find_san9, make_root, print_rules } from 'hopefox'
 import { WorkerContext, WorkerProvider } from './Worker2'
 import { debounce } from './common/timing'
 
@@ -336,7 +336,7 @@ function Editor2(props: { fen?: string }) {
       return undefined
     }
     try {
-      return find_san8(props.fen, selected_rule().rule)
+      return find_san9(props.fen, selected_rule().rule)
     } catch(e) {   
       return 'Error' + e
     }
