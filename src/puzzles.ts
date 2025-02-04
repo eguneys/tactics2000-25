@@ -90,6 +90,7 @@ const rule_to_tags = (rule: RuleSolve) => {
   if (rule.solve === undefined) {
     if (rule.rule.rule.includes('.')) {
       //return [`solved_${rule.rule.name}`]
+
     }
     return ['solved', `solved_${rule.rule.name}`]
   } else if (rule.solve >= 0) {
