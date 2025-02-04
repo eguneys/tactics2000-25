@@ -6,7 +6,7 @@ import { Puzzle, puzzle_all_tags, puzzle_has_tags } from './puzzles'
 import { Shala } from './Shalala'
 import { stepwiseScroll } from './common/scroll'
 import { INITIAL_FEN } from 'chessops/fen'
-import { find_san9, make_root, print_rules } from 'hopefox'
+import { find_san11, make_root, print_rules } from 'hopefox'
 import { WorkerContext, WorkerProvider } from './Worker2'
 import { debounce } from './common/timing'
 
@@ -171,6 +171,7 @@ const Puzzles = (props: { on_selected_puzzle: (_?: Puzzle) => void }) => {
 
   //const nb_solved = createMemo(() => filtered().filter(_ => _.solve.i === 99).length)
 
+  let id_previous = filter()
   const toggle_id = () => {
     let f = filter()
 
@@ -178,23 +179,18 @@ const Puzzles = (props: { on_selected_puzzle: (_?: Puzzle) => void }) => {
       return
     }
 
-    if (f.includes('id_')) {
-      f = f.replace(/id_\w*/, '')
-    } else {
-
-      let puzzle = selected_puzzle()
-      if (!puzzle) {
-        return
-      }
-
-      let [y,n] = f.split('_!_')
-      
-      f = y.trim() + ` id_${puzzle.id} `
-      if (n !== undefined) {
-        f += '_!_' + n.trim()
-      }
+    let puzzle = selected_puzzle()
+    if (!puzzle) {
+      return
     }
-    set_filter(f)
+
+    if (id_previous) {
+      set_filter(id_previous)
+      id_previous = undefined
+    } else {
+      id_previous = f
+      set_filter(`id_${puzzle.id} `)
+    }
   }
 
   const toggle_solved = () => {
@@ -212,6 +208,26 @@ const Puzzles = (props: { on_selected_puzzle: (_?: Puzzle) => void }) => {
 
     set_filter(f)
   }
+
+  let failed_previous = filter()
+  const toggle_failed = () => {
+    let f = filter()
+
+    if (!f) {
+      return
+    }
+
+    if (f.includes('failed')) {
+      f = failed_previous
+    } else {
+      failed_previous = f
+      f = 'failed'
+    }
+
+    set_filter(f)
+  }
+
+
 
   createEffect(on(selected_puzzle, (puzzle) => {
     if (puzzle) {
@@ -255,6 +271,7 @@ const Puzzles = (props: { on_selected_puzzle: (_?: Puzzle) => void }) => {
       <div class='info'>
         <button onClick={toggle_solved}>Toggle Solved</button>
         <button onClick={toggle_id}>Toggle Id</button>
+        <button onClick={toggle_failed}>Toggle Failed</button>
       </div>
       </div>
   )
@@ -336,7 +353,7 @@ function Editor2(props: { fen?: string }) {
       return undefined
     }
     try {
-      return find_san9(props.fen, selected_rule().rule)
+      return find_san11(props.fen, selected_rule().rule)
     } catch(e) {   
       return 'Error' + e
     }

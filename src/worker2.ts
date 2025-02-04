@@ -52,7 +52,7 @@ function work_while_checking() {
 
     puzzles = puzzles.filter(_ => _.sans[0].includes('B'))
     puzzles = puzzles.filter(_ => !_.tags['mate'] && !_.tags['endgame'])
-    puzzles = puzzles.slice(0, 100)
+    puzzles = puzzles
 
     for (let i = 0; i < puzzles.length; i++) {
         if (i % 10 === 0) {
