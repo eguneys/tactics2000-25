@@ -219,6 +219,7 @@ const Puzzles = (props: { on_selected_puzzle: (_?: Puzzle) => void }) => {
 
     if (f.includes('failed')) {
       f = failed_previous
+      failed_previous = undefined
     } else {
       failed_previous = f
       f = 'failed'
