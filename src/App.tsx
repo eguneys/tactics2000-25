@@ -22,7 +22,6 @@ function App() {
 function WithWorker() {
 
   const [selected_puzzle, set_selected_puzzle] = createSignal<Puzzle | undefined>(undefined)
-
   const [i_selected_sans, set_i_selected_sans] = createSignal(0)
 
   const puzzle_sans = createMemo(() => {
