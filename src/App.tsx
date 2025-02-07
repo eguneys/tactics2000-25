@@ -12,6 +12,8 @@ import { WorkerContext, WorkerProvider } from './Worker2'
 import { debounce } from './common/timing'
 import { parseFen } from 'hopefox/fen'
 
+
+
 function App() {
   return (<>
     <WorkerProvider>
