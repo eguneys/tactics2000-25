@@ -1,3 +1,4 @@
+import wasm_url from './assets/wasm/hopefox.wasm?url'
 import { batch, createEffect, createMemo, createResource, createSignal, For, mapArray, on, Show, useContext } from 'solid-js'
 import './App.scss'
 import Chessboard from './Chessboard'
@@ -348,7 +349,7 @@ function Editor2(props: { fen?: string }) {
     ww.rules(dd.map(_ => ({name: _.name, rule: ''})))
   }
 
-  let [get_m] = createResource<PositionManager>(() => PositionManager.make((file: string) => `/wasm/${file}`))
+  let [get_m] = createResource<PositionManager>(() => PositionManager.make(() => wasm_url))
 
   let found_san = createMemo(() => { 
     let m = get_m()

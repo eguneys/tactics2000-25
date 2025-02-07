@@ -1,3 +1,4 @@
+import wasm_url from './assets/wasm/hopefox.wasm?url'
 import { parse_puzzles, Puzzle, Rule, solve_p, yn_filter } from "./puzzles"
 import tenk from './assets/tenk_puzzle.csv?raw'
 import { PositionManager } from "hopefox"
@@ -9,7 +10,7 @@ let m: PositionManager
 
 const fetch_puzzles = async () => parse_puzzles(tenk)
 const init = async () => {
-    m = await PositionManager.make((file: string) => `/wasm/${file}`)
+    m = await PositionManager.make(() => wasm_url)
     all = await fetch_puzzles()
     postMessage('ready')
 }
