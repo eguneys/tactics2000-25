@@ -1,4 +1,4 @@
-import { batch, createEffect, createMemo, createSignal, For, mapArray, on, Show, useContext } from 'solid-js'
+import { batch, createEffect, createMemo, createResource, createSignal, For, mapArray, on, Show, useContext } from 'solid-js'
 import './App.scss'
 import Chessboard from './Chessboard'
 import { makePersistedNamespaced } from './persisted'
@@ -6,9 +6,10 @@ import { Puzzle, puzzle_all_tags, puzzle_has_tags } from './puzzles'
 import { Shala } from './Shalala'
 import { stepwiseScroll } from './common/scroll'
 import { INITIAL_FEN } from 'chessops/fen'
-import { find_san11, make_root, print_rules } from 'hopefox'
+import { Chess, find_san10_c, make_root, PositionManager, print_rules } from 'hopefox'
 import { WorkerContext, WorkerProvider } from './Worker2'
 import { debounce } from './common/timing'
+import { parseFen } from 'hopefox/fen'
 
 
 function App() {
@@ -347,13 +348,18 @@ function Editor2(props: { fen?: string }) {
     ww.rules(dd.map(_ => ({name: _.name, rule: ''})))
   }
 
+  let [get_m] = createResource<PositionManager>(() => PositionManager.make((file: string) => `/wasm/${file}`))
 
   let found_san = createMemo(() => { 
+    let m = get_m()
     if (!props.fen) {
       return undefined
     }
+    if (!m) {
+      return undefined
+    }
     try {
-      return find_san11(props.fen, selected_rule().rule)
+      return find_san10_c(props.fen, selected_rule().rule, m)
     } catch(e) {   
       return 'Error' + e
     }
@@ -364,8 +370,13 @@ function Editor2(props: { fen?: string }) {
     if (!rule || !props.fen) {
       return
     }
+    let m = get_m()
+    if (!m) {
+      return
+    }
 
-    return print_rules(make_root(props.fen, rule.rule))
+    let pos = Chess.fromSetup(parseFen(props.fen).unwrap()).unwrap()
+    return print_rules(make_root(props.fen, rule.rule, m), pos)
   })
 
   return (<>

@@ -1,4 +1,4 @@
-import { Chess, find_san11, LRUCache, parseUci } from "hopefox"
+import { Chess, find_san10_c, LRUCache, parseUci, PositionManager } from "hopefox"
 import { makeFen, parseFen } from "hopefox/fen"
 import { makeSan } from "hopefox/san"
 
@@ -104,7 +104,7 @@ const rule_to_tags = (rule: RuleSolve) => {
 
 const lruCache = new LRUCache<string>(60000); // Set a capacity
 
-function cache_san(fen: string, rule: string) {
+function cache_san(fen: string, rule: string, m: PositionManager) {
     const key = `${fen}${rule}`;
 
     const cachedValue = lruCache.get(key);
@@ -116,7 +116,7 @@ function cache_san(fen: string, rule: string) {
     }
 
     try {
-      const result = find_san11(fen, rule);
+      const result = find_san10_c(fen, rule, m);
       if (result === undefined) {
         lruCache.put(key, '--')
       } else {
@@ -128,7 +128,7 @@ function cache_san(fen: string, rule: string) {
     }
 }
 
-export function solve_p(p: Puzzle, rule: string) {
+export function solve_p(p: Puzzle, rule: string, m: PositionManager) {
     for (let i = 0; i < p.move_fens.length; i += 2) {
         let fen = p.move_fens[i]
         //let san = p.sans[i]
@@ -137,7 +137,7 @@ export function solve_p(p: Puzzle, rule: string) {
           return undefined
         }
       //let solved_san = find_san7(fen, rule)
-      let solved_san = cache_san(fen, rule)
+      let solved_san = cache_san(fen, rule, m)
       if (solved_san === undefined) {
         return -1
       }

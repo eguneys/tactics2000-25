@@ -1,12 +1,15 @@
 import { parse_puzzles, Puzzle, Rule, solve_p, yn_filter } from "./puzzles"
 import tenk from './assets/tenk_puzzle.csv?raw'
+import { PositionManager } from "hopefox"
 
 let all: Puzzle[] = []
 
 
+let m: PositionManager
 
 const fetch_puzzles = async () => parse_puzzles(tenk)
 const init = async () => {
+    m = await PositionManager.make((file: string) => `/wasm/${file}`)
     all = await fetch_puzzles()
     postMessage('ready')
 }
@@ -52,7 +55,8 @@ function work_while_checking() {
 
     puzzles = puzzles.filter(_ => _.sans[0].includes('B'))
     puzzles = puzzles.filter(_ => !_.tags['mate'] && !_.tags['endgame'])
-    //puzzles = puzzles.filter(_ => _.id === '004Ys')
+    //puzzles = puzzles.filter(_ => _.id === '063RU')
+    //puzzles = puzzles.slice(0, 100)
 
     for (let i = 0; i < puzzles.length; i++) {
         if (i % 10 === 0) {
@@ -60,7 +64,7 @@ function work_while_checking() {
         }
 
         let puzzle = puzzles[i]
-        puzzle.rules = rules.map(rule => ({ rule, solve: solve_p(puzzle, rule.rule )}))
+        puzzle.rules = rules.map(rule => ({ rule, solve: solve_p(puzzle, rule.rule, m)}))
     }
 
     let filtered = filter ? puzzles.filter(yn_filter(filter)) : puzzles
