@@ -10,6 +10,7 @@ import { INITIAL_FEN } from 'chessops/fen'
 import { Chess, find_san10_c, make_root, PositionManager, print_rules } from 'hopefox'
 import { WorkerContext, WorkerProvider } from './Worker2'
 import { debounce } from './common/timing'
+
 import { parseFen } from 'hopefox/fen'
 
 
