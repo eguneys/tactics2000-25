@@ -58,6 +58,7 @@ function work_while_checking() {
     puzzles = puzzles.filter(_ => !_.tags['mate'] && !_.tags['endgame'])
     //puzzles = puzzles.filter(_ => _.id === '063RU')
     //puzzles = puzzles.slice(0, 100)
+    //puzzles = puzzles.filter(_ => _.tags['mate'])
 
     for (let i = 0; i < puzzles.length; i++) {
         if (i % 10 === 0) {

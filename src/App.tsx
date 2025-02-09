@@ -354,6 +354,7 @@ function Editor2(props: { fen?: string }) {
 
   let found_san = createMemo(() => { 
     let m = get_m()
+    let rule = selected_rule().rule
     if (!props.fen) {
       return undefined
     }
@@ -361,7 +362,7 @@ function Editor2(props: { fen?: string }) {
       return undefined
     }
     try {
-      return find_san10_c(props.fen, selected_rule().rule, m)
+      return find_san10_c(props.fen, rule, m)
     } catch(e) {   
       return 'Error' + e
     }
