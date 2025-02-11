@@ -55,7 +55,7 @@ export type RuleSolve = {
   solve: number | undefined 
 }
 
-export type Rule = { name: string, rule: string }
+export type Rule = { name: string, rule: string, z: number }
 
 export type Pattern = { name: string, pattern: string }
 
@@ -81,6 +81,22 @@ export const puzzle_all_tags = (puzzle: Puzzle): Record<string, boolean> => {
     let tags = [...new Set(puzzle.rules.flatMap(rule_to_tags))]
 
     tags.forEach(tag => res[tag] = true)
+
+
+    let tags2 = []
+    let attempted = puzzle.rules.filter(_ => _.solve === undefined || _.solve >= 0)
+
+    if (attempted.length > 0) {
+      let first = attempted[0]
+      if (first.solve === undefined) {
+        tags2.push('matched')
+        tags2.push(`matched_${first.rule.name}`)
+      } else {
+        tags2.push('unmatched')
+      }
+    }
+
+    tags2.forEach(tag => res[tag] = true)
   }
 
   return res

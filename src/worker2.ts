@@ -42,6 +42,8 @@ const set_rules = (r: Rule[]) => {
         ...rules.filter(e => !r.find(_ => _.name === e.name)),
         ...xx
     ]
+
+    rules.sort((a, b) => b.z - a.z)
 }
 
 

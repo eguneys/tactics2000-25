@@ -304,10 +304,10 @@ function Editor2(props: { fen?: string }) {
       name = `rule${i++}`
     }
 
-    return { name, rule: '' }
+    return { name, rule: '', z: l.length }
   }
 
-  const [rule_list, set_rule_list] = makePersistedNamespaced([{name: 'rule1', rule: ''}], 'rule-list')
+  const [rule_list, set_rule_list] = makePersistedNamespaced([{name: 'rule1', rule: '', z: 0}], 'rule-list')
 
   const [i_rule_list, set_i_rule_list] = createSignal(0)
 
@@ -321,7 +321,7 @@ function Editor2(props: { fen?: string }) {
     if (e.key === 'Escape') {
       let rule = (e.target as HTMLTextAreaElement).value
       let ss = selected_rule()
-      let updated = { name: ss.name, rule }
+      let updated = { name: ss.name, rule, z: ss.z }
 
       let l = rule_list()
       let i = l.findIndex(_ => _.name === ss.name)
@@ -347,7 +347,7 @@ function Editor2(props: { fen?: string }) {
     }
     let dd = l.splice(i_rule_list(), 1)
     set_rule_list([...l])
-    ww.rules(dd.map(_ => ({name: _.name, rule: ''})))
+    ww.rules(dd.map(_ => ({name: _.name, rule: '', z: -1})))
   }
 
   let [get_m] = createResource<PositionManager>(() => PositionManager.make(() => wasm_url))
