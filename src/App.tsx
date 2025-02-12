@@ -173,7 +173,7 @@ const Puzzles = (props: { on_selected_puzzle: (_?: Puzzle) => void }) => {
 
   //const nb_solved = createMemo(() => filtered().filter(_ => _.solve.i === 99).length)
 
-  let id_previous = filter()
+  let id_previous: string | undefined = undefined
   const toggle_id = () => {
     let f = filter()
 
