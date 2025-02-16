@@ -147,12 +147,20 @@ class PuzzleMemo {
     return this.puzzle.tags
   }
 
+  _has_tags: Record<string, boolean> | undefined
   get has_tags() {
-    return puzzle_has_tags(this.puzzle)
+    if (!this._has_tags) {
+      this._has_tags = puzzle_has_tags(this.puzzle)
+    }
+    return this._has_tags
   }
 
+  _all_tags: Record<string, boolean> | undefined
   get all_tags() {
-    return puzzle_all_tags(this.puzzle)
+    if (!this._all_tags) {
+      this._all_tags = puzzle_all_tags(this.puzzle)
+    }
+    return this._all_tags
   }
 
   private constructor(readonly puzzle: Puzzle) {}
@@ -346,7 +354,12 @@ function Editor2(props: { fen?: string }) {
       return
     }
     let dd = l.splice(i_rule_list(), 1)
-    set_rule_list([...l])
+    batch(() => {
+      set_rule_list([...l])
+      if (i_rule_list() === l.length) {
+        set_i_rule_list(l.length - 1)
+      }
+    })
     ww.rules(dd.map(_ => ({name: _.name, rule: '', z: -1})))
   }
 

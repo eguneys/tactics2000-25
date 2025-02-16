@@ -97,6 +97,10 @@ export const puzzle_all_tags = (puzzle: Puzzle): Record<string, boolean> => {
     }
 
     tags2.forEach(tag => res[tag] = true)
+
+    if (attempted.length === 1) {
+      res['single_attempt'] = true
+    }
   }
 
   return res

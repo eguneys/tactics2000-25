@@ -1,6 +1,7 @@
 import wasm_url from './assets/wasm/hopefox.wasm?url'
 import { parse_puzzles, Puzzle, Rule, solve_p, yn_filter } from "./puzzles"
 import tenk from './assets/tenk_puzzle.csv?raw'
+//import a_hundred from './assets/a_hundred_puzzles.csv?raw'
 import { PositionManager } from "hopefox"
 
 let all: Puzzle[] = []
@@ -58,9 +59,12 @@ function work_while_checking() {
 
     puzzles = puzzles.filter(_ => _.sans[0].includes('B'))
     puzzles = puzzles.filter(_ => !_.tags['mate'] && !_.tags['endgame'])
+    puzzles = puzzles.filter(_ => !_.tags['pin'] && !_.tags['fork'] && !_.tags['trappedPiece'] && !_.tags['hangingPiece'])
     //puzzles = puzzles.filter(_ => _.id === '063RU')
-    //puzzles = puzzles.slice(0, 100)
+    //puzzles = puzzles.filter(_ => !['08Ogr'].includes(_.id))
     //puzzles = puzzles.filter(_ => _.tags['mate'])
+
+    puzzles = puzzles.slice(0, 5000)
 
     for (let i = 0; i < puzzles.length; i++) {
         if (i % 10 === 0) {
